@@ -1,4 +1,5 @@
-// Lautsprecherbox nach Handskizze: 40 x 30 cm, Tieftoener Oe 18 cm, Bassreflex
+// Lautsprecherbox nach Handskizze: 40 x 30 cm, 2-Wege
+// Tieftoener Oe 18 cm links, Hochtoener rechts, Bassreflexrohr in der Rueckwand
 // Einheiten: mm.  Koordinaten: x = Breite (links -> rechts),
 //                 y = Tiefe (Front bei y = 0), z = Hoehe (Boden bei z = 0)
 //
@@ -7,6 +8,7 @@
 //   "explosion"   – alle Platten auseinandergezogen (zum Verstehen der Verbindung)
 //   "rohr"        – nur das 3D-druckbare Bassreflexrohr (-> STL exportieren)
 //   "front"       – Frontplatte flach, zum Ausdrucken/Anzeichnen der Bohrungen
+//   "rueckwand"   – Rueckwand flach (von hinten gesehen), Bohrungen Rohr + Anschluss
 //
 // Material-Empfehlung: MDF 19 mm (siehe README). Fuer Birke-Multiplex 18 mm
 // einfach wand = 18 setzen – alle Zuschnitte rechnen sich selbst neu.
@@ -24,20 +26,27 @@ wand   = 19;    // Plattenstaerke (MDF 19 mm)
 // ---------- Tieftoener (aus Skizze) ----------
 chassis_d    = 180;   // Aussendurchmesser Korb (Oe 18 cm)
 ausschnitt_d = 155;   // Einbauausschnitt (155 mm)
-chassis_x    = 270;   // Mitte, ab linker Aussenkante  (festgelegt)
+chassis_x    = 150;   // Mitte, ab linker Aussenkante  (links, damit rechts Platz fuer den Hochtoener ist)
 chassis_z    = hoehe / 2; // Mitte, ab Unterkante      (festgelegt)
 chassis_tiefe = 85;   // Einbautiefe, nur fuer Vorschau/Kollisionscheck
 
-// ---------- Bassreflexrohr (3D-Druck) ----------
+// ---------- Hochtoener (rechts neben dem Tieftoener) ----------
+ht_ausschnitt_d = 30.2;  // aus Skizze "Oe 30,20 mm" -> VOR DEM BOHREN mit Datenblatt pruefen!
+ht_flansch_d    = 60;    // nur Vorschau
+ht_tiefe        = 40;    // nur Vorschau/Kollisionscheck
+ht_x            = 300;   // Mitte, ab linker Aussenkante
+ht_z            = hoehe / 2;
+
+// ---------- Bassreflexrohr (3D-Druck, in der Rueckwand) ----------
 rohr_innen_d  = 50;   // Innendurchmesser
 rohr_wand     = 3;    // -> aussen 56 mm, Lochsaege 57 mm
 rohr_laenge   = 120;  // Gesamtlaenge inkl. Flansch -> ca. 45 Hz bei 18,5 L
 flansch_d     = 90;
 flansch_h     = 10;
-flare_d       = 66;   // Trichteroeffnung vorne (45 Grad, ohne Stuetzen druckbar)
-rohr_x        = 90;   // Mitte, ab linker Aussenkante (kleiner Kreis der Skizze)
+flare_d       = 66;   // Trichteroeffnung aussen (45 Grad, ohne Stuetzen druckbar)
+rohr_x        = 200;  // Mitte, ab linker Aussenkante (von VORNE gesehen) -> mittig
 rohr_z        = hoehe / 2;
-loch_rohr_d   = 57;   // Lochsaege fuer das Rohr in der Front
+loch_rohr_d   = 57;   // Lochsaege fuer das Rohr in der Rueckwand
 
 // ---------- Deckel: Bedienfeld / Verstaerkermodul (schraffiert in Skizze) ----------
 bedienfeld    = [150, 70];   // PLATZHALTER -> an dein Modul anpassen
@@ -51,7 +60,7 @@ anschluss_z   = 60;
 
 // ---------- Versteifung ----------
 strebe_d      = 25;   // Rundholz Buche Oe 25 mm, Deckel <-> Boden
-strebe_x      = 310;
+strebe_x      = 330;
 strebe_y      = 200;
 
 // ---------- abgeleitete Masse ----------
@@ -81,7 +90,7 @@ module front() {
     difference() {
         translate([wand, 0, wand]) cube([breite - 2 * wand, wand, hoehe - 2 * wand]);
         translate([chassis_x, -1, chassis_z]) rotate([-90, 0, 0]) cylinder(d = ausschnitt_d, h = wand + 2);
-        translate([rohr_x, -1, rohr_z])       rotate([-90, 0, 0]) cylinder(d = loch_rohr_d,  h = wand + 2);
+        translate([ht_x, -1, ht_z])           rotate([-90, 0, 0]) cylinder(d = ht_ausschnitt_d, h = wand + 2);
     }
 }
 
@@ -90,6 +99,8 @@ module rueckwand() {
         translate([wand, tiefe - wand, wand]) cube([breite - 2 * wand, wand, hoehe - 2 * wand]);
         translate([anschluss_x, tiefe - wand - 1, anschluss_z]) rotate([-90, 0, 0])
             cylinder(d = anschluss_d, h = wand + 2);
+        translate([rohr_x, tiefe - wand - 1, rohr_z]) rotate([-90, 0, 0])
+            cylinder(d = loch_rohr_d, h = wand + 2);
     }
 }
 
@@ -131,6 +142,15 @@ module tieftoener() {
     }
 }
 
+// ---------- Hochtoener (nur Vorschau) ----------
+module hochtoener() {
+    translate([ht_x, 0, ht_z]) rotate([90, 0, 0]) {
+        color(schwarz) cylinder(d = ht_flansch_d, h = 4);
+        color([0.35, 0.35, 0.38]) translate([0, 0, 4]) scale([1, 1, 0.5]) sphere(d = 26);
+        color(schwarz) mirror([0, 0, 1]) cylinder(d = ht_ausschnitt_d - 1, h = ht_tiefe);
+    }
+}
+
 // ---------- Zusammenbau ----------
 module gehaeuse() {
     color(holz) boden();
@@ -145,8 +165,9 @@ module gehaeuse() {
 module zusammenbau() {
     gehaeuse();
     tieftoener();
-    // Flansch sitzt aussen auf der Front, Rohr ragt nach innen
-    color([0.2, 0.2, 0.22]) translate([rohr_x, -flansch_h, rohr_z]) rotate([-90, 0, 0]) bassreflexrohr();
+    hochtoener();
+    // Flansch sitzt aussen auf der Rueckwand, Rohr ragt nach innen
+    color([0.2, 0.2, 0.22]) translate([rohr_x, tiefe + flansch_h, rohr_z]) rotate([90, 0, 0]) bassreflexrohr();
 }
 
 module explosion(a = 120) {
@@ -165,12 +186,17 @@ else if (ansicht == "rohr") bassreflexrohr();
 else if (ansicht == "front")
     // Frontplatte flach (Blick von vorne), Ursprung = linke untere Ecke der Platte
     projection() rotate([-90, 0, 0]) translate([-wand, 0, -wand]) front();
+else if (ansicht == "rueckwand")
+    // Rueckwand von hinten gesehen (gespiegelt!), Ursprung = linke untere Ecke von hinten
+    projection() mirror([1, 0, 0]) rotate([-90, 0, 0])
+        translate([-(breite - wand), -tiefe, -wand]) rueckwand();
 
 // ---------- Zuschnittliste + Volumen in der Konsole ----------
 brutto_l = innen[0] * innen[1] * innen[2] / 1e6;
 abzug_l  = 1.0                                                        // Chassis (typ. 18-cm-Tieftoener)
          + PI * pow((rohr_innen_d + 2 * rohr_wand) / 2, 2) * (rohr_laenge - flansch_h) / 1e6
          + PI * pow(strebe_d / 2, 2) * innen[2] / 1e6
+         + PI * pow(ht_ausschnitt_d / 2, 2) * ht_tiefe / 1e6         // Hochtoener
          + 0.2;                                                       // Verstaerkermodul
 netto_l  = brutto_l - abzug_l;
 d_cm     = rohr_innen_d / 10;
